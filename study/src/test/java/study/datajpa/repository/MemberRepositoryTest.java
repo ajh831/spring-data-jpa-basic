@@ -1,5 +1,7 @@
 package study.datajpa.repository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,9 +26,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Rollback(value = false)
 class MemberRepositoryTest {
 
-    @Autowired MemberRepository memberRepository;
+    @Autowired
+    MemberRepository memberRepository;
     @Autowired
     private TeamRepository teamRepository;
+    @PersistenceContext
+    EntityManager em;
 
     @Test
     public void testMember() {
@@ -247,5 +252,57 @@ class MemberRepositoryTest {
         assertThat(page.getTotalPages()).isEqualTo(2);
         assertThat(page.isFirst()).isTrue();
         assertThat(page.hasNext()).isTrue();
+    }
+
+    @Test
+    public void bulkUpdate() {
+        // given
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 19));
+        memberRepository.save(new Member("member3", 20));
+        memberRepository.save(new Member("member4", 21));
+        memberRepository.save(new Member("member5", 40));
+
+        // when
+        int resultCount = memberRepository.bulkAgePlus(20);
+
+        List<Member> result = memberRepository.findByUsername("member5");
+        Member member5 = result.get(0);
+        System.out.println("member5 = " + member5);
+        /*
+        *  영속성 컨텍스트에는 반영이 되지 않아 "member5 = Member(id=5, username=member5, age=40)"로 출력된다.
+        *  그렇기 때문에 벌크성 연산을 수행후에는 영속성 컨텍스트를 날려버려야된다.
+        * */
+
+        // then
+        assertThat(resultCount).isEqualTo(3);
+
+    }
+
+    @Test
+    public void bulkUpdate2() {
+        // given
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 19));
+        memberRepository.save(new Member("member3", 20));
+        memberRepository.save(new Member("member4", 21));
+        memberRepository.save(new Member("member5", 40));
+
+        // when
+        int resultCount = memberRepository.bulkAgePlus(20);
+//        em.flush();
+//        em.clear();
+
+        List<Member> result = memberRepository.findByUsername("member5");
+        Member member5 = result.get(0);
+        System.out.println("member5 = " + member5);
+        /*
+         *  영속성 컨텍스트에는 반영이 되지 않아 "member5 = Member(id=5, username=member5, age=40)"로 출력된다.
+         *  그렇기 때문에 벌크성 연산을 수행후에는 영속성 컨텍스트를 날려버려야된다.
+         **/
+
+        // then
+        assertThat(resultCount).isEqualTo(3);
+
     }
 }
